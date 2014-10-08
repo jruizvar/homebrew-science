@@ -2,8 +2,9 @@ require "formula"
 
 class Edirect < Formula
   homepage "http://www.ncbi.nlm.nih.gov/books/NBK179288/"
+  #tag "bioinformatics"
   url "ftp://ftp.ncbi.nlm.nih.gov/entrez/entrezdirect/edirect.tar.gz"
-  sha1 "f5ffa5a466ad2c971a1a3fbc3c13348ab7770317"
+  sha1 "c77a311486816966456712b2117503fea4aaa1a8"
   version "2.00"
 
   def install
