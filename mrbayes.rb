@@ -1,18 +1,26 @@
-require 'formula'
-
 class Mrbayes < Formula
-  homepage 'http://mrbayes.sourceforge.net/'
-  url 'https://downloads.sourceforge.net/project/mrbayes/mrbayes/3.2.2/mrbayes-3.2.2.tar.gz'
-  sha1 '6f469f595a3dbd2f8394cb29bc70ca1773338ac8'
+  desc "Bayesian inference of phylogenies and evolutionary models"
+  homepage "http://mrbayes.sourceforge.net/"
+  url "https://downloads.sourceforge.net/project/mrbayes/mrbayes/3.2.6/mrbayes-3.2.6.tar.gz"
+  sha256 "f8fea43b5cb5e24a203a2bb233bfe9f6e7f77af48332f8df20085467cc61496d"
+  head "https://mrbayes.svn.sourceforge.net/svnroot/mrbayes/trunk/"
+  # tag "bioinformatics"
+  # doi "10.1093/bioinformatics/btg180"
 
-  head 'https://mrbayes.svn.sourceforge.net/svnroot/mrbayes/trunk/'
+  bottle do
+    cellar :any_skip_relocation
+    sha256 "3cff3cf3836481d517ee9fc27f76adb464acb56d24fc8bd135a72bc6d75bb606" => :sierra
+    sha256 "8daf7a5a685cacc3a389cc5c2ce5690fd70f9537caf4df469393efd9cbb9251e" => :el_capitan
+    sha256 "c26cf8600fd909c19bddefcd5abde30d8e9e3ce15e371c5f9185480e51b222ac" => :yosemite
+    sha256 "40a093ccf6f43fcb89aa22467d8f63fb14b58456257aef50d1f774256d125c45" => :x86_64_linux
+  end
 
-  option 'with-beagle', 'Build with BEAGLE library support'
+  option "with-beagle", "Build with BEAGLE library support"
 
-  depends_on :autoconf => :build
-  depends_on :automake => :build
+  depends_on "autoconf" => :build
+  depends_on "automake" => :build
   depends_on :mpi => [:cc, :optional]
-  depends_on 'beagle' => :optional
+  depends_on "beagle" => :optional
 
   fails_with :llvm do
     build 2336
@@ -21,19 +29,10 @@ class Mrbayes < Formula
 
   def install
     args = ["--disable-debug", "--prefix=#{prefix}"]
+    args << "--with-beagle=" + ((build.with? "beagle") ? Formula["beagle"].opt_prefix : "no")
+    args << "--enable-mpi="  + ((build.with? "mpi") ? "yes" : "no")
 
-    if build.with? 'beagle'
-      args << "--with-beagle=#{Formula["beagle"].opt_prefix}"
-    else
-      args << "--with-beagle=no"
-    end
-
-    if build.with? "mpi"
-      # ENV['OMPI_CC'] = ENV.cc
-      args << "--enable-mpi=yes"
-    end
-
-    cd 'src' do
+    cd "src" do
       system "autoconf"
       system "./configure", *args
       system "make"
@@ -41,7 +40,7 @@ class Mrbayes < Formula
     end
 
     # Doc and examples are not included in the svn
-    (share/'mrbayes').install ['documentation', 'examples'] unless build.head?
+    pkgshare.install ["documentation", "examples"] unless build.head?
   end
 
   def caveats
@@ -54,6 +53,6 @@ class Mrbayes < Formula
   end
 
   test do
-    system "echo 'version' | #{bin}/mb"
+    pipe_output(bin/"mb", "Execute #{pkgshare}/examples/finch.nex")
   end
 end

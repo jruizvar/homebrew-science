@@ -1,51 +1,50 @@
-require 'formula'
-
 class Phylip < Formula
-  homepage 'http://evolution.genetics.washington.edu/phylip.html'
-  url 'http://evolution.gs.washington.edu/phylip/download/phylip-3.695.tar.gz'
-  sha1 '1505d1b3bb1378244e1733a6ecb173b3259c3d0f'
+  homepage "http://evolution.genetics.washington.edu/phylip.html"
+  # tag "bioinformatics"
+  # doi "10.1007/BF01734359"
 
-  depends_on :x11
+  url "http://evolution.gs.washington.edu/phylip/download/phylip-3.696.tar.gz"
+  sha256 "cd0a452ca51922142ad06d585e2ef98565536a227cbd2bd47a2243af72c84a06"
+
+  bottle do
+    cellar :any
+    sha256 "de6dce855888ca1ea007f6492a104d80bd261579f9d2bb0320f98bedfa50cfc8" => :yosemite
+    sha256 "c13101048ff00f36319cbe601669275f2e79810fa67826f7850b71f05b714b3c" => :mavericks
+    sha256 "72d274eb537a6949a4832809b0912050ca25853f439c127f4ac0c7fe059e1768" => :mountain_lion
+    sha256 "059d29ea0a4d231c17be873e8864ae1e7d6568b5b1a858e4f96ce37fd9614e5a" => :x86_64_linux
+  end
 
   def install
-    cd 'src' do
+    cd "src" do
       system "make -f Makefile.unx all"
-      system "make -f Makefile.unx put EXEDIR=#{bin}"
-      # Perhaps one day the Mac apps will work (with cocoa) "make -f Makefile.osx apps"
+      system "make -f Makefile.unx put EXEDIR=#{libexec}"
     end
 
-    # Remove installed fonts
-    bin.cd do
-      rm Dir['font*']
-    end
-
-    (share/'phylip').install ['phylip.html', 'doc']
+    rm Dir["#{libexec}/font*"]
+    bin.install_symlink Dir["#{libexec}/*"] - Dir["#{libexec}/*.{so,jar,unx}"]
+    pkgshare.install ["phylip.html", "doc"]
   end
 
   def caveats
     <<-EOS.undent
-      The documentation has been installed to #{HOMEBREW_PREFIX}/share/phylip/phylip.html.
+      The documentation has been installed to #{HOMEBREW_PREFIX}/share/phylip/
     EOS
   end
 
   test do
     # From http://evolution.genetics.washington.edu/phylip/doc/pars.html
-    mktemp do
-      Pathname.new('infile').write <<-EOF.undent
-        7         6
-        Alpha1    110110
-        Alpha2    110110
-        Beta1     110000
-        Beta2     110000
-        Gamma1    100110
-        Delta     001001
-        Epsilon   001110
-      EOF
-      Pathname.new('expected').write <<-EOF.undent
-        (((Epsilon:0.00,Delta:3.00):2.00,Gamma1:0.00):1.00,(Beta2:0.00,Beta1:0.00):2.00,Alpha2:0.00,Alpha1:0.00);
-      EOF
-      system "echo 'Y' | #{bin}/pars"
-      compare_file 'outtree', 'expected'
-    end
+    (testpath/"infile").write <<-EOF.undent
+      7         6
+      Alpha1    110110
+      Alpha2    110110
+      Beta1     110000
+      Beta2     110000
+      Gamma1    100110
+      Delta     001001
+      Epsilon   001110
+    EOF
+    expected = "(((Epsilon:0.00,Delta:3.00):2.00,Gamma1:0.00):1.00,(Beta2:0.00,Beta1:0.00):2.00,Alpha2:0.00,Alpha1:0.00);"
+    system "echo 'Y' | #{bin}/pars"
+    assert File.read("outtree").include?(expected)
   end
 end

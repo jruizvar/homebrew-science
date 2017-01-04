@@ -1,36 +1,35 @@
-require 'formula'
-
 class Sailfish < Formula
-  homepage 'http://www.cs.cmu.edu/~ckingsf/software/sailfish'
-  #doi '10.1038/nbt.2862'
-  url 'https://github.com/kingsfordgroup/sailfish/releases/download/v0.6.2/Sailfish-0.6.2-Source.tar.gz'
-  sha1 'b8bf01cab7b685fd9b9608bf3e97e25df28e0639'
+  desc "Rapid mapping-based RNA-Seq isoform quantification"
+  homepage "http://www.cs.cmu.edu/~ckingsf/software/sailfish"
+  # doi "10.1038/nbt.2862"
+  # tag "bioinformatics"
+  url "https://github.com/kingsfordgroup/sailfish/archive/v0.10.1.tar.gz"
+  sha256 "a0d6d944382f2e07ffbfd0371132588e2f22bb846ecfc3d3435ff3d81b30d6c6"
+  revision 1
 
-  depends_on 'cmake' => :build
-  depends_on 'boost' => :recommended
-  depends_on 'tbb' => :recommended
-
-  keg_only 'sailfish conflicts with jellyfish.'
-
-  fails_with :clang do
-    build 500
-    cause 'Currently, the only supported compiler is GCC(>=4.7). We hope to support Clang soon.'
+  bottle do
+    sha256 "16e1cce6665ec8c6587f31e7fdf94bd5d0da0f21392efafd6b6d6464f344284d" => :el_capitan
+    sha256 "62c8f97b957c13e3f9d97b58cd8363c651c4b6a43a9c94710b6ca95900a5ae55" => :yosemite
+    sha256 "16906591aea875161ae8dfeaeeb84f71653c422470e2e68f8ccf9d235344d9a2" => :mavericks
+    sha256 "e6b53b6c2f593384c1f0fea66e10dd386d9145ddf3e6ed34e616e03213f8d74a" => :x86_64_linux
   end
 
-  fails_with :gcc do
-    build 5666
-    cause 'Sailfish requires g++ 4.7 or greater.'
-  end
+  depends_on "autoconf" => :build
+  depends_on "automake" => :build
+  depends_on "boost"
+  depends_on "cmake" => :build
+  depends_on "tbb"
+  needs :cxx11
 
   def install
     ENV.deparallelize
-    mkdir 'build' do
-      system 'cmake', '..', *std_cmake_args
-      system 'make', 'install'
+    mkdir "build" do
+      system "cmake", "..", *std_cmake_args
+      system "make", "install"
     end
   end
 
   test do
-    system "#{bin}/sailfish --version"
+    system "#{bin}/sailfish", "--version"
   end
 end

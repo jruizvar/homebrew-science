@@ -1,14 +1,20 @@
-require 'formula'
-
 class Scotch5 < Formula
-  homepage 'https://gforge.inria.fr/projects/scotch'
-  url 'https://gforge.inria.fr/frs/download.php/28978'
-  version '5.1.12b'
-  sha1 '3866deea3199bc364d31ec46c63adcb799a8cf48'
+  homepage "https://gforge.inria.fr/projects/scotch"
+  url "https://gforge.inria.fr/frs/download.php/28978"
+  version "5.1.12b"
+  sha256 "82654e63398529cd3bcc8eefdd51d3b3161c0429bb11770e31f8eb0c3790db6e"
+  revision 1
 
-  depends_on :mpi => :cc
+  bottle do
+    cellar :any
+    sha256 "196ca2e162b649cf87b2f906fbc01de49048d0e6aba602c9f27c4f2d7ae3a181" => :el_capitan
+    sha256 "a556a95bb6fa93f0c50986829fc3d821158b652e482982dfd6895017b9e92e0e" => :yosemite
+    sha256 "3704eea2ff80599ddbf302c80ad0b67ef812c731b8a844e343f7823eb73626fb" => :mavericks
+  end
 
   keg_only "Conflicts with scotch (6.x)"
+
+  depends_on :mpi => :cc
 
   # bugs in makefile:
   # - libptesmumps must be built before main_esmumps
@@ -16,24 +22,28 @@ class Scotch5 < Formula
   patch :DATA
 
   def install
-    cd 'src' do
-      ln_s 'Make.inc/Makefile.inc.i686_mac_darwin8', 'Makefile.inc'
-
+    cd "src" do
       # Use mpicc to compile the parallelized version
-      make_args = ["CCS=#{ENV['CC']}",
-                   "CCP=#{ENV['MPICC']}",
-                   "CCD=#{ENV['MPICC']}",
-                   "LIB=.dylib",
-                   "AR=libtool",
-                   "ARFLAGS=-dynamic -install_name #{lib}/$(notdir $@) -undefined dynamic_lookup -o ",
+      make_args = ["CCS=#{ENV["CC"]}",
+                   "CCP=#{ENV["MPICC"]}",
+                   "CCD=#{ENV["MPICC"]}",
                    "RANLIB=echo"]
-      inreplace 'Makefile.inc' do |s|
-        s.gsub! '-O3', '-O3 -fPIC'
+      if OS.mac?
+        ln_s "Make.inc/Makefile.inc.i686_mac_darwin8", "Makefile.inc"
+        make_args += ["LIB=.dylib",
+                      "AR=libtool",
+                      "ARFLAGS=-dynamic -install_name #{lib}/$(notdir $@) -undefined dynamic_lookup -o "]
+      else
+        ln_s "Make.inc/Makefile.inc.x86-64_pc_linux2", "Makefile.inc"
+        make_args += ["LIB=.so",
+                      "AR=$(CCS)",
+                      "ARFLAGS=-shared -Wl,-soname -Wl,#{lib}/$(notdir $@) -o "]
       end
+      inreplace "Makefile.inc", "-O3", "-O3 -fPIC"
 
-      system 'make', 'scotch', *make_args
-      system 'make', 'ptscotch', *make_args
-      system 'make', 'install', "prefix=#{prefix}", *make_args
+      system "make", "scotch", *make_args
+      system "make", "ptscotch", *make_args
+      system "make", "install", "prefix=#{prefix}", *make_args
     end
   end
 end

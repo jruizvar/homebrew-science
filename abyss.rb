@@ -1,61 +1,60 @@
-require 'formula'
-
 class Abyss < Formula
-  homepage 'http://www.bcgsc.ca/platform/bioinfo/software/abyss'
-  #doi '10.1101/gr.089532.108'
-  #tag "bioinformatics"
-  url 'https://github.com/bcgsc/abyss/releases/download/1.5.2/abyss-1.5.2.tar.gz'
-  sha1 'f28189338efdee0167cf73f92b43181caccd2b1d'
+  desc "ABySS: genome sequence assembler for short reads"
+  homepage "http://www.bcgsc.ca/platform/bioinfo/software/abyss"
+  url "https://github.com/bcgsc/abyss/releases/download/2.0.2/abyss-2.0.2.tar.gz"
+  sha256 "d87b76edeac3a6fb48f24a1d63f243d8278a324c9a5eb29027b640f7089422df"
+  # doi "10.1101/gr.089532.108"
+  # tag "bioinformatics"
+
+  bottle do
+    cellar :any
+    sha256 "251f9ae9ceae20c2320ca368043ce36f8fce74fd86efcbdc1a61ad5182c9cdfc" => :sierra
+    sha256 "240ba4e0961f45c54084e14b5f3f6aaf09864539e605d3c641dc1164c078feea" => :el_capitan
+    sha256 "991ef66e31957509517bcd373476753b5a314ff2b657f02260bcea1314da09cf" => :yosemite
+    sha256 "31da03dd3dabc22c36c0ef9cb748d08e669e49fc3f29a4f64b0939d6be8354ca" => :x86_64_linux
+  end
 
   head do
-    url 'https://github.com/bcgsc/abyss.git'
+    url "https://github.com/bcgsc/abyss.git"
 
-    depends_on :autoconf => :build
-    depends_on :automake => :build
-    depends_on 'multimarkdown' => :build
+    depends_on "autoconf" => :build
+    depends_on "automake" => :build
+    depends_on "multimarkdown" => :build
   end
 
-  resource "gtest" do
-    #homepage "https://code.google.com/p/googletest/"
-    url "https://googletest.googlecode.com/files/gtest-1.7.0.zip"
-    sha1 "f85f6d2481e2c6c4a18539e391aa4ea8ab0394af"
-  end
+  option :cxx11
+  option "with-maxk=", "Set the maximum k-mer length to N [default is 128]"
+  option "without-test", "Skip build-time tests (not recommended)"
+  option "with-openmp", "Enable OpenMP multithreading"
 
-  option "without-check", "Skip build-time tests (not recommended)"
+  deprecated_option "enable-maxk" => "with-maxk"
+  deprecated_option "without-check" => "without-test"
 
-  MAXK = [32, 64, 96, 128, 256, 512]
-  MAXK.each do |k|
-    option "enable-maxk=#{k}", "set the maximum k-mer length to #{k}"
-  end
+  needs :openmp if build.with? "openmp"
 
   # Only header files are used from these packages, so :build is appropriate
-  depends_on 'boost' => :build
-  depends_on 'google-sparsehash' => :build
+  depends_on "boost" => :build
+  depends_on "google-sparsehash" => :build
   depends_on :mpi => [:cc, :recommended]
 
   # strip breaks the ability to read compressed files.
-  skip_clean 'bin'
+  skip_clean "bin"
 
   def install
-    resource("gtest").stage do
-      system "make", "-C", "make"
-      (buildpath/"gtest").install "include"
-      (buildpath/"gtest/lib").install "make/gtest_main.a" => "libgtest_main.a"
-    end if build.with? "check"
-
+    ENV.cxx11 if build.cxx11?
     system "./autogen.sh" if build.head?
 
     args = [
-      '--disable-dependency-tracking',
-      "--prefix=#{prefix}"]
-    args << "--with-gtest=#{buildpath}/gtest" if build.with? "check"
-    MAXK.each do |k|
-      args << "--enable-maxk=#{k}" if build.include? "enable-maxk=#{k}"
-    end
+      "--enable-maxk=#{ARGV.value("with-maxk") || 128}",
+      "--prefix=#{prefix}",
+      "--disable-dependency-tracking",
+    ]
 
     system "./configure", *args
     system "make"
-    system "make", "check" if build.with? "check"
+    # make check currently fails due to an upstream bug.
+    # See https://github.com/bcgsc/abyss/issues/133
+    # system "make", "check" if build.with? "test"
     system "make", "install"
   end
 

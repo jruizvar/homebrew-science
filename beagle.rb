@@ -1,55 +1,41 @@
-require 'formula'
-
-class CudaRequirement < Requirement
-  build true
-  fatal true
-
-  satisfy { which 'nvcc' }
-
-  env do
-    # Nvidia CUDA installs (externally) into this dir (hard-coded):
-    ENV.append 'CFLAGS', "-F/Library/Frameworks"
-    # # because nvcc has to be used
-    ENV.append 'PATH', which('nvcc').dirname, ':'
-  end
-
-  def message
-    <<-EOS.undent
-      To use this formula with NVIDIA graphics cards you will need to
-      download and install the CUDA drivers and tools from nvidia.com.
-
-          https://developer.nvidia.com/cuda-downloads
-
-      Select "Mac OS" as the Operating System and then select the
-      'Developer Drivers for MacOS' package.
-      You will also need to download and install the 'CUDA Toolkit' package.
-
-      The `nvcc` has to be in your PATH then (which is normally the case).
-
-  EOS
-  end
-end
+require File.expand_path("../Requirements/cuda_requirement", __FILE__)
 
 class Beagle < Formula
-  homepage 'https://beagle-lib.googlecode.com/'
-  url 'https://beagle-lib.googlecode.com/svn/tags/beagle_release_2_1/'
-  head 'https://beagle-lib.googlecode.com/svn/trunk/'
+  desc "Evaluate the likelihood of sequence evolution on trees"
+  homepage "https://github.com/beagle-dev/beagle-lib"
+  url "https://github.com/beagle-dev/beagle-lib/archive/beagle_release_2_1_2.tar.gz"
+  sha256 "82ff13f4e7d7bffab6352e4551dfa13afabf82bff54ea5761d1fc1e78341d7de"
 
-  option 'with-opencl', "Build with OpenCL GPU/CPU acceleration"
+  head "https://github.com/beagle-dev/beagle-lib.git"
+  # doi "10.1093/sysbio/syr100"
+  # tag "bioinformatics"
 
-  depends_on :autoconf => :build
-  depends_on :automake => :build
-  depends_on 'doxygen' => :build
-  depends_on :libtool
+  bottle do
+    cellar :any
+    revision 1
+    sha256 "8733c60372d50b85751797333a6ab514ecc317f099a1e0d0f8cc441030b349f2" => :el_capitan
+    sha256 "042480e4bf775ca2589450bfa15ae881fd581014edc811d467bc79f73f28f9bf" => :yosemite
+    sha256 "f1e1620257b47fee4b487e36cb9e3ae50a3c279f50c7ea25181fd4dd0bee2d6f" => :mavericks
+    sha256 "cd26ace4ad12f50c5dc4dd58c44739eef6ace01544f7f03927065526402979fa" => :x86_64_linux
+  end
+
+  option "with-test", "Run build-time tests"
+  option "with-opencl", "Build with OpenCL GPU/CPU acceleration"
+
+  depends_on "autoconf" => :build
+  depends_on "automake" => :build
+  depends_on "libtool" => :build
+  depends_on "doxygen" => :build
   depends_on CudaRequirement => :optional
 
   def install
     system "./autogen.sh"
 
-    args = [ "--prefix=#{prefix}" ]
+    args = ["--prefix=#{prefix}"]
     args << "--enable-osx-leopard" if MacOS.version <= :leopard
-    args << "--with-cuda=#{Pathname(which 'nvcc').dirname}" if build.with? 'cuda'
-    args << "--enable-opencl" if build.with? 'opencl'
+    args << "--with-cuda=#{Pathname(which("nvcc")).dirname}" if build.with? "cuda"
+    args << "--without-cuda" if build.without? "cuda"
+    args << "--enable-opencl" if build.with? "opencl"
 
     system "./configure", *args
 
@@ -59,8 +45,20 @@ class Beagle < Formula
     ENV.deparallelize
 
     system "make"
-    system "make install"
-    # The tests seem to fail if --enable-opencl is provided
-    system "make check" if build.without? "opencl"
+    system "make", "install"
+    system "make", "check" if build.with? "test"
+  end
+
+  test do
+    (testpath/"test.cpp").write <<-EOS.undent
+      #include "libhmsbeagle/platform.h"
+      int main()
+      {
+        return 0;
+      }
+    EOS
+    system ENV.cxx, "-I#{include}/libhmsbeagle-1",
+           testpath/"test.cpp", "-o", "test"
+    system "./test"
   end
 end

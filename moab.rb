@@ -1,27 +1,48 @@
-require 'formula'
-
 class Moab < Formula
-  homepage 'https://trac.mcs.anl.gov/projects/ITAPS/wiki/MOAB'
-  url 'https://bitbucket.org/fathomteam/moab/get/4.6.2.tar.gz'
-  sha1 'cecd30aaf9bdbb58078e06b0097a9144cac63d7f'
+  desc "Mesh-Oriented datABase for evaluating mesh data"
+  homepage "http://press3.mcs.anl.gov/sigma/moab-library/"
+  url "http://ftp.mcs.anl.gov/pub/fathom/moab-4.9.2.tar.gz"
+  sha256 "5d79e299dd9bf76d7cade434cde478bb6dc8290e5b574b25cc30ee96f35a203d"
+  head "https://bitbucket.org/fathomteam/moab.git"
 
-  option 'without-check', "Skip build-time checks (not recommended)"
+  bottle do
+    cellar :any
+    sha256 "fa7cad15c7f86546a90e6c308a758025ddfea152340a74d46ff4b5ca52551eee" => :el_capitan
+    sha256 "e863c8326fd5d0408322cf4b191b447da12127b849fd9906f1b44463ae612c0e" => :yosemite
+    sha256 "d21fd72720b56e8344bac3bc163dfe89795e48b8f2cafdc4c54c5234e9bcd10d" => :mavericks
+  end
 
-  depends_on :autoconf
-  depends_on :automake
-  depends_on :libtool
-  depends_on 'netcdf'
-  depends_on 'hdf5'
-  depends_on :fortran if build.with? 'check'
+  depends_on "autoconf" => :build
+  depends_on "automake" => :build
+  depends_on "libtool" => :build
+  depends_on "netcdf"
+  depends_on "hdf5"
+  depends_on :fortran
 
   def install
-    system "autoreconf", "--force", "--install"
-    system "./configure", "--disable-debug", "--disable-dependency-tracking",
-                          "--prefix=#{prefix}", "--libdir=#{libexec}/lib"
+    args = [
+      "--disable-debug",
+      "--disable-dependency-tracking",
+      "--enable-shared",
+      "--enable-static",
+      "--prefix=#{prefix}",
+      "--with-netcdf=#{Formula["netcdf"].opt_prefix}",
+      "--with-hdf5=#{Formula["hdf5"].opt_prefix}",
+      "--without-cgns",
+    ]
 
-    system "make install"
-    # Moab installs non-lib files in libdir. Link only the libraries.
-    lib.install_symlink Dir["#{libexec}/lib/*.a"]
-    system "make check" if build.with? 'check'
+    system "autoreconf", "-fi"
+    system "./configure", *args
+    system "make", "install"
+    system "make", "check"
+
+    cd lib do
+      # Move non-libraries out of lib
+      prefix.install %w[iMesh-Defs.inc moab.config moab.make MOABConfig.cmake]
+    end
+  end
+
+  test do
+    system bin/"mbconvert", "-h"
   end
 end

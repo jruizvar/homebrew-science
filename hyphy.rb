@@ -1,17 +1,23 @@
-require 'formula'
-
 class Hyphy < Formula
-  homepage 'http://www.hyphy.org/'
-  url 'https://github.com/veg/hyphy/archive/2.2.tar.gz'
-  sha1 '9ff285a71a51f4699947a162fe46c3eb3458425e'
-  head 'https://github.com/veg/hyphy.git'
+  desc "Hypothesis testing with phylogenies"
+  homepage "http://www.hyphy.org/"
+  url "https://github.com/veg/hyphy/archive/2.2.7.tar.gz"
+  sha256 "8c84340665b126742b85ed8d54354455ffc97ebd3cc689658120d7f5791adf13"
+  head "https://github.com/veg/hyphy.git"
 
-  option 'with-opencl', "Build a version with OpenCL GPU/CPU acceleration"
-  option 'without-multi-threaded', "Don't build a multi-threaded version"
-  option 'without-single-threaded', "Don't build a single-threaded version"
+  bottle do
+    sha256 "b19ac75cbe0ce6ca2eb4ebcfbe8cf9cda8f65fb230beb57eef2c8d77d75655ec" => :sierra
+    sha256 "74b0628be9dddccc04b1a33c80ac25512fcc27e5f713eb51c7175a4a1a65096f" => :el_capitan
+    sha256 "7a1525ce1e42fc359320dec513d9397b7d02190b9ce8bc0f892796494ca58db3" => :yosemite
+  end
 
-  depends_on 'cmake' => :build
-  depends_on :mpi => :optional
+  option "with-opencl", "Build a version with OpenCL GPU/CPU acceleration"
+  option "without-multi-threaded", "Don't build a multi-threaded version"
+  option "without-single-threaded", "Don't build a single-threaded version"
+
+  depends_on "openssl"
+  depends_on "cmake" => :build
+  depends_on mpi: :optional
 
   fails_with :clang do
     build 77
@@ -22,18 +28,24 @@ class Hyphy < Formula
 
   def install
     system "cmake", "-DINSTALL_PREFIX=#{prefix}", ".", *std_cmake_args
-    system "make SP" if build.with? "single-threaded"
-    system "make MP2" if build.with? "multi-threaded"
-    system "make MPI" if build.with? :mpi
-    system "make OCL" if build.with? "opencl"
+    system "make", "SP" if build.with? "single-threaded"
+    system "make", "MP2" if build.with? "multi-threaded"
+    system "make", "MPI" if build.with? "mpi"
+    system "make", "OCL" if build.with? "opencl"
+    system "make", "GTEST"
 
-    system "make install"
-    (share/'hyphy').install('help')
+    system "make", "install"
+    libexec.install "HYPHYGTEST"
+    doc.install("help")
   end
 
   def caveats; <<-EOS.undent
-    The help has been installed to #{HOMEBREW_PREFIX}/share/hyphy.
+    The help has been installed to #{doc}/hyphy.
     EOS
+  end
+
+  test do
+    system libexec/"HYPHYGTEST"
   end
 end
 

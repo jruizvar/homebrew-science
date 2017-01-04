@@ -1,12 +1,14 @@
-require 'formula'
-
 class TransAbyss < Formula
+  desc "Assemble RNA-Seq data using ABySS"
   homepage "http://www.bcgsc.ca/platform/bioinfo/software/trans-abyss"
-  #doi "10.1038/nmeth.1517"
+  # doi "10.1038/nmeth.1517"
+  # tag "bioinformatics"
+
+  url "https://github.com/bcgsc/transabyss/archive/1.5.5.tar.gz"
+  sha256 "e3e92661a97ac9f7e097182a1040675bc5a334253ed098898411f3952bddebe3"
   head "https://github.com/bcgsc/transabyss.git"
 
-  url "https://github.com/bcgsc/transabyss/archive/1.5.1.tar.gz"
-  sha1 "6bbe6123bd0142b6b10190ff95752641090350b0"
+  bottle :unneeded
 
   depends_on "abyss"
   depends_on "blat"
@@ -17,19 +19,16 @@ class TransAbyss < Formula
   depends_on "samtools"
 
   depends_on "pysam" => :python
-  depends_on LanguageModuleDependency.new :python, "biopython", "Bio"
-  depends_on LanguageModuleDependency.new :python, "python-igraph", "igraph"
+  depends_on LanguageModuleRequirement.new :python, "biopython", "Bio"
+  depends_on LanguageModuleRequirement.new :python, "python-igraph", "igraph"
 
   def install
     prefix.install Dir["*"]
-    bin.install_symlink "../transabyss",
-      "../transabyss-analyze",
-      "../transabyss-merge"
+    bin.install_symlink "../transabyss", "../transabyss-merge"
   end
 
   test do
-    system "transabyss --help"
-    system "transabyss-analyze --help"
-    system "transabyss-merge --help"
+    system "#{bin}/transabyss", "--help"
+    system "#{bin}/transabyss-merge", "--help"
   end
 end

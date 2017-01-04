@@ -1,24 +1,34 @@
-require "formula"
-
 class UcscGenomeBrowser < Formula
+  desc "Mirror of the UCSC Genome Browser"
   homepage "http://genome.ucsc.edu"
-  #doi "10.1093/nar/gkq963"
-  #tag "bioinformatics"
-
-  url "http://hgdownload.cse.ucsc.edu/admin/jksrc.v304.zip"
-  sha1 "499f9f758bae7d43a013a9629ced7fddedca29ee"
+  url "http://hgdownload.cse.ucsc.edu/admin/jksrc.v338.zip"
+  sha256 "760972f8f8b6f5a2ac62c1a563a9235b3844c040757d8c51d793962224afa239"
   head "git://genome-source.cse.ucsc.edu/kent.git"
+  # doi "10.1093/nar/gkq963"
+  # tag "bioinformatics"
+
+  bottle do
+    cellar :any
+    sha256 "fcc259c3a85c7c768c395ff08f73c967e6dee6871178737813896fe45f3def32" => :sierra
+    sha256 "464c2f20b03aec8b07c8d2351d0fb9954dd25502fe52f4096b89c49294a5e021" => :el_capitan
+    sha256 "34420c79358503243dd11ec436f81c4e2feea9b638dafe005bd3e0cd7c2598fa" => :yosemite
+  end
 
   keg_only <<-EOF.undent
     The UCSC Genome Browser installs many commands, and some conflict
     with other packages.
   EOF
 
-  depends_on :libpng
+  depends_on "libpng"
   depends_on :mysql
+  depends_on "openssl"
 
   def install
     ENV.j1
+
+    # Fix build error caused by curling to a nonexistant site
+    inreplace "src/hg/hgMirror/makefile", "curl", "#curl"
+
     machtype = `uname -m`.chomp
     user = `whoami`.chomp
     mkdir prefix/"cgi-bin-#{user}"
@@ -36,7 +46,7 @@ class UcscGenomeBrowser < Formula
         "SCRIPTS=#{prefix}/scripts",
         "CGI_BIN=#{prefix}/cgi-bin",
         "DOCUMENTROOT=#{prefix}/htdocs",
-        "PNGLIB=-L#{Formula["libpng"].opt_lib} -lpng",
+        "PNGLIB=-L#{Formula["libpng"].opt_lib} -lpng -lz -lcrypto",
         "MYSQLLIBS=-lmysqlclient -lz",
         "MYSQLINC=#{Formula["mysql"].opt_include}/mysql"
     end
@@ -44,7 +54,7 @@ class UcscGenomeBrowser < Formula
     mv "#{prefix}/htdocs-#{user}", prefix/"htdocs"
   end
 
-  # Todo: Best would be if this formula would put a complete working
+  # TODO: Best would be if this formula would put a complete working
   #       apache virtual site into #{share} and instruct the user to just
   #       do a symlink.
   def caveats; <<-EOF.undent
@@ -76,5 +86,14 @@ class UcscGenomeBrowser < Formula
 
       Point your browser to http://localhost/cgi-bin/hgGateway
     EOF
+  end
+
+  test do
+    (testpath/"test.fa").write <<-EOF.undent
+      >test
+      ACTG
+    EOF
+    system "#{bin}/faOneRecord test.fa test > out.fa"
+    compare_file "test.fa", "out.fa"
   end
 end

@@ -1,49 +1,36 @@
-require 'formula'
-
 class Samtools < Formula
-  homepage 'http://samtools.sourceforge.net/'
-  #doi '10.1093/bioinformatics/btp352'
-  #tag "bioinformatics"
+  desc "Tools for manipulating next-generation sequencing data"
+  homepage "http://www.htslib.org/"
+  # doi "10.1093/bioinformatics/btp352"
+  # tag "bioinformatics"
+
+  url "https://github.com/samtools/samtools/releases/download/1.3.1/samtools-1.3.1.tar.bz2"
+  sha256 "6c3d74355e9cf2d9b2e1460273285d154107659efa36a155704b1e4358b7d67e"
   head "https://github.com/samtools/samtools.git"
 
-  url "https://github.com/samtools/samtools/archive/1.1.tar.gz"
-  sha1 "ca446ec24eabd2f71605dde55a787f182cb50f13"
-
-  option 'with-dwgsim', 'Build with "Whole Genome Simulation"'
-
-  depends_on "htslib"
-
-  resource 'dwgsim' do
-    # http://sourceforge.net/apps/mediawiki/dnaa/index.php?title=Whole_Genome_Simulation
-    url 'https://downloads.sourceforge.net/project/dnaa/dwgsim/dwgsim-0.1.11.tar.gz'
-    sha1 'e0275122618fa38dae815d2b43c4da87614c67dd'
+  bottle do
+    cellar :any
+    sha256 "a00c0988740cfca3ab5c6320022e0be1040b388657e49392dda21991e0dd863d" => :el_capitan
+    sha256 "7c0706b65c5675889a355c3d0ca544ff9f8f22e9401b7270c2a42486b780da99" => :yosemite
+    sha256 "a7450a2071e194b8d53ca269279e875debce2167436b4e7d6e1cccb334a97f9f" => :mavericks
+    sha256 "fb76b53c76435522541953727533afda8d95a848bc4c8754022c6c4e7c194dca" => :x86_64_linux
   end
 
+  depends_on "htslib"
+  depends_on "homebrew/dupes/ncurses" unless OS.mac?
+
   def install
-    inreplace "Makefile", "include $(HTSDIR)/htslib.mk", ""
-    htslib = Formula["htslib"].opt_prefix
-    system "make", "HTSDIR=#{htslib}/include", "HTSLIB=#{htslib}/lib/libhts.a"
+    system "./configure", "--with-htslib=#{Formula["htslib"].opt_prefix}"
+    system "make"
 
-    if build.with? 'dwgsim'
-      ohai "Building dwgsim"
-      samtools = pwd
-      resource('dwgsim').stage do
-        system "ln -s #{samtools} samtools"
-        system "make", "CC=#{ENV.cc}"
-        bin.install %w{dwgsim dwgsim_eval}
-      end
-    end
-
-    bin.install 'samtools'
-    bin.install %w{misc/maq2sam-long misc/maq2sam-short misc/md5fa misc/md5sum-lite misc/wgsim}
-    bin.install Dir['misc/*.pl']
-    lib.install 'libbam.a'
-    man1.install %w{samtools.1}
-    (share+'samtools').install %w{examples}
-    (include+'bam').install Dir['*.h']
+    bin.install Dir["{samtools,misc/*}"].select { |f| File.executable?(f) }
+    lib.install "libbam.a"
+    (include/"bam").install Dir["*.h"]
+    man1.install "samtools.1"
+    pkgshare.install "examples"
   end
 
   test do
-    system 'samtools 2>&1 |grep -q samtools'
+    system bin/"samtools", "--help"
   end
 end

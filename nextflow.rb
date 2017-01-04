@@ -1,22 +1,25 @@
-require "formula"
-
 class Nextflow < Formula
-  homepage "http://www.nextflow.io/"
+  desc "Data-driven computational pipelines"
+  homepage "https://www.nextflow.io/"
+  # doi "10.6084/m9.figshare.1254958"
+  # tag "bioinformatics"
+
+  url "https://www.nextflow.io/releases/v0.23.0/nextflow"
+  version "0.23.0"
+  sha256 "096fecdf19788bada4beef488de010f9a218ab4b48a6762d7b910e1b47db1456"
   head "https://github.com/nextflow-io/nextflow.git"
 
-  depends_on :java => "1.7"
+  bottle :unneeded
 
-  version "0.10.3"
-  url "http://www.nextflow.io/releases/v0.10.3/nextflow"
-  sha1 "d13888b89421f54065ba64fff87a47613554727d"
+  depends_on java: "1.7+"
 
   def install
-    chmod 0755, "nextflow"
-    system "./nextflow", "-download"
     bin.install "nextflow"
   end
 
   test do
-    system "echo \"println 'hello'\" |#{bin}/nextflow -q run - |grep hello"
+    system bin/"nextflow", "-download"
+    output = pipe_output("#{bin}/nextflow -q run -", "println 'hello'").chomp
+    assert_equal "hello", output
   end
 end
